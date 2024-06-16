@@ -6,6 +6,8 @@ const bodyParser = require('body-parser')
 require('dotenv').config();
 const User = require('./model/user');
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+
 
 
 const app = express();
@@ -29,8 +31,10 @@ app.post('/submit-form',async (req,res,next)=>{
     res.sendFile(path.join(__dirname, 'public/views', 'submit.html'));
 })
 
+const emailTemplatePath = path.join(__dirname, 'public/views', 'mail.html');
+const emailTemplate = fs.readFileSync(emailTemplatePath, 'utf-8');
 
-async function sendEmail(usersEmail){
+async function sendEmail(users){
     try{
         const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -41,17 +45,17 @@ async function sendEmail(usersEmail){
               pass: process.env.APP_PASS,
             },
           });
-    
-          const mailOptions = {
-            from: '"Obianuka micheal" obianukamicheal@gmail.com', // sender address
-            to: usersEmail, // list of receivers
-            subject: "Testing nodemailer email sending ✔", // Subject line
-            text: "Hello world?", // plain text body
-            html: "<b>Hello world?</b>", // html body
+
+          for (const user of users){
+            const mailOptions = {
+                from: '"Obianuka micheal" obianukamicheal@gmail.com', // sender address
+                to: user.email, // list of receivers
+                subject: `Happy Birthday ${user.username} !!`, // Subject line
+                html: emailTemplate, // html body
+              }
+              let info = await transporter.sendMail(mailOptions);
+              console.log('Message sent: %s', info.messageId);
           }
-    
-           let info = await transporter.sendMail(mailOptions);
-           console.log('Message sent: %s', info.messageId);
     }catch(err){
         console.log(err)
     }
@@ -59,7 +63,7 @@ async function sendEmail(usersEmail){
 }
 
 
-schedule.scheduleJob('0 7 * * *', async()=>{
+schedule.scheduleJob('*/30 * * * * *', async()=>{
     try{
         const today = new Date();
         const startOfDay = new Date(today.setHours(0, 0, 0, 0));
@@ -71,17 +75,17 @@ schedule.scheduleJob('0 7 * * *', async()=>{
                 $lte: endOfDay
             }
 
-        });
+        }).select('email username').exec();
 
         const usersEmail = [];
-
+        console.log(users, 'all users email and username')
         if(users.length > 0 ){
             users.forEach(user=>{
                 usersEmail.push(user.email)
             })
 
-            sendEmail(usersEmail)
-            console.log(usersEmail)
+            sendEmail(users)
+            // console.log(usersEmail)
         }else{
 
             console.log('No user has their birthday today')
