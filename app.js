@@ -63,7 +63,7 @@ async function sendEmail(users){
 }
 
 
-schedule.scheduleJob('*/30 * * * * *', async()=>{
+schedule.scheduleJob('0 7 * * *', async()=>{
     try{
         const today = new Date();
         const startOfDay = new Date(today.setHours(0, 0, 0, 0));
